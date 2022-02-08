@@ -1,0 +1,65 @@
+#Node
+apiVersion: v1
+kind: Service
+metadata:
+  name: socket-svc
+spec:
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10
+  selector:
+    app: socket-app
+  type: NodePort
+  ports:
+    - port: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: socket-app-deploy
+spec:
+  selector:
+    matchLabels:
+      app: socket-app
+  replicas: 2
+  template:
+    metadata:
+      name: socket-app-pd
+      labels:
+        app: socket-app
+    spec:
+      containers:
+      - name: socket-app
+        image: felipemarchant/socketio-chat
+        ports:
+        - containerPort: 8080
+        env:
+          - name: REDIS_HOST
+            value: "socket-redis-svc"
+---
+# Redis
+apiVersion: v1
+kind: Service
+metadata:
+  name: socket-redis-svc
+spec:
+  selector:
+    app: socket-redis
+  ports:
+    - protocol: TCP
+      port: 6379
+  type: NodePort
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: socket-redis-pd
+  labels:
+    app: socket-redis
+spec:
+  containers:
+  - name: socket-redis
+    image: redis:7.0-rc1-alpine3.15
+    ports:
+    - containerPort: 6379
